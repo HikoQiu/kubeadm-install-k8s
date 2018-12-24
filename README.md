@@ -40,11 +40,14 @@ kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
     * [7\.2 遇到的问题](#72-%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98)
       * [7\.2\.1 指定 \-\-kubelet\-preferred\-address\-types](#721-%E6%8C%87%E5%AE%9A---kubelet-preferred-address-types)
       * [7\.2\.2 指定 \-\-kubelet\-insecure\-tls](#722-%E6%8C%87%E5%AE%9A---kubelet-insecure-tls)
-  * [8\. 部署 kubernetes\-dashboard](#8-%E9%83%A8%E7%BD%B2-kubernetes-dashboard)
-  * [9\. 部署 Ingress，服务暴露](#9-%E9%83%A8%E7%BD%B2-ingress%E6%9C%8D%E5%8A%A1%E6%9A%B4%E9%9C%B2)
-    * [9\.1 必知知识点](#91-%E5%BF%85%E7%9F%A5%E7%9F%A5%E8%AF%86%E7%82%B9)
-    * [9\.2 部署 Nginx\-ingress\-controller](#92-%E9%83%A8%E7%BD%B2-nginx-ingress-controller)
-      * [9\.2\.1 404 问题](#921-404-%E9%97%AE%E9%A2%98)
+  * [8\. 部署 Ingress，服务暴露](#8-%E9%83%A8%E7%BD%B2-ingress%E6%9C%8D%E5%8A%A1%E6%9A%B4%E9%9C%B2)
+    * [8\.1 必知知识点](#81-%E5%BF%85%E7%9F%A5%E7%9F%A5%E8%AF%86%E7%82%B9)
+    * [8\.2 部署 Nginx\-ingress\-controller](#82-%E9%83%A8%E7%BD%B2-nginx-ingress-controller)
+  * [9\. 部署 kubernetes\-dashboard](#9-%E9%83%A8%E7%BD%B2-kubernetes-dashboard)
+    * [9\.1 Dashboard 配置](#91-dashboard-%E9%85%8D%E7%BD%AE)
+    * [9\.2 HTTPS 访问 Dashboard](#92-https-%E8%AE%BF%E9%97%AE-dashboard)
+    * [9\.3 登录 Dashboard](#93-%E7%99%BB%E5%BD%95-dashboard)
+    * [9\.4 404 问题](#94-404-%E9%97%AE%E9%A2%98)
 
 # 一、环境准备
 
@@ -1548,223 +1551,11 @@ E1223 14:53:10.529198       1 manager.go:102] unable to fully collect metrics: [
 
 解决方式就是启动 metrics-server 时，指定 `--kubelet-insecure-tls` 参数。
 
-## 8. 部署 kubernetes-dashboard
 
-新建部署 dashboard 的资源配置文件：kubernetes-dashboard.yaml，内容如下：
 
-```
-apiVersion: v1
-kind: Secret
-metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard-certs
-  namespace: kube-system
-type: Opaque
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
-  namespace: kube-system
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: kubernetes-dashboard-minimal
-  namespace: kube-system
-rules:
-  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["create"]
-  # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["create"]
-  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
-- apiGroups: [""]
-  resources: ["secrets"]
-  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
-  verbs: ["get", "update", "delete"]
-  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
-- apiGroups: [""]
-  resources: ["configmaps"]
-  resourceNames: ["kubernetes-dashboard-settings"]
-  verbs: ["get", "update"]
-  # Allow Dashboard to get metrics from heapster.
-- apiGroups: [""]
-  resources: ["services"]
-  resourceNames: ["heapster"]
-  verbs: ["proxy"]
-- apiGroups: [""]
-  resources: ["services/proxy"]
-  resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
-  verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubernetes-dashboard-minimal
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubernetes-dashboard-minimal
-subjects:
-- kind: ServiceAccount
-  name: kubernetes-dashboard
-  namespace: kube-system
----
-kind: Deployment
-apiVersion: apps/v1
-metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
-  namespace: kube-system
-spec:
-  replicas: 1
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      k8s-app: kubernetes-dashboard
-  template:
-    metadata:
-      labels:
-        k8s-app: kubernetes-dashboard
-    spec:
-      containers:
-      - name: kubernetes-dashboard
-        # 使用阿里云的镜像
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.0
-        ports:
-        - containerPort: 8443
-          protocol: TCP
-        args:
-          - --auto-generate-certificates
-        volumeMounts:
-        - name: kubernetes-dashboard-certs
-          mountPath: /certs
-          # Create on-disk volume to store exec logs
-        - mountPath: /tmp
-          name: tmp-volume
-        livenessProbe:
-          httpGet:
-            scheme: HTTPS
-            path: /
-            port: 8443
-          initialDelaySeconds: 30
-          timeoutSeconds: 30
-      volumes:
-      - name: kubernetes-dashboard-certs
-        secret:
-          secretName: kubernetes-dashboard-certs
-      - name: tmp-volume
-        emptyDir: {}
-      serviceAccountName: kubernetes-dashboard
-      tolerations:
-      - key: node-role.kubernetes.io/master
-        effect: NoSchedule
----
-kind: Service
-apiVersion: v1
-metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
-  namespace: kube-system
-spec:
-  ports:
-    - port: 443
-      targetPort: 8443
-  selector:
-    k8s-app: kubernetes-dashboard
----
-# 配置 ingress 配置，待会部署完 ingress 之后，就可以通过以下配置的域名访问
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: dashboard-ingress
-  namespace: kube-system
-  annotations:
-    # 指定转发协议为 HTTPS，因为 ingress 默认转发协议是 HTTP，而 kubernetes-dashboard 默认是 HTTPS
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-spec:
-  rules:
-  # 指定访问 dashboard 的域名
-  - host: dashboard.k8s.hiko.im
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: kubernetes-dashboard
-          servicePort: 443
-```
+## 8. 部署 Ingress，服务暴露
 
-执行部署 kubernetes-dashboard，命令 ` kubectl apply -f kubernetes-dashboard.yaml `，控制台打印如下：
-
-```
-[kube@m01 shells]$ kubectl apply -f kubernetes-dashboard.yaml 
-secret/kubernetes-dashboard-certs created
-serviceaccount/kubernetes-dashboard created
-role.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
-rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
-deployment.apps/kubernetes-dashboard created
-service/kubernetes-dashboard created
-ingress.extensions/dashboard-ingress created
-```
-
-查看部署结果：
-
-```
-[kube@m01 ~]$ kubectl  get pods --all-namespaces
-NAMESPACE     NAME                                    READY   STATUS    RESTARTS   AGE
-kube-system   coredns-6c67f849c7-2qc68                1/1     Running   0          172m
-kube-system   coredns-6c67f849c7-dps8h                1/1     Running   0          172m
-kube-system   etcd-m01                                1/1     Running   8          37h
-kube-system   etcd-m02                                1/1     Running   12         33h
-kube-system   etcd-m03                                1/1     Running   0          33h
-kube-system   kube-apiserver-m01                      1/1     Running   9          37h
-kube-system   kube-apiserver-m02                      1/1     Running   0          33h
-kube-system   kube-apiserver-m03                      1/1     Running   0          33h
-kube-system   kube-controller-manager-m01             1/1     Running   4          37h
-kube-system   kube-controller-manager-m02             1/1     Running   0          33h
-kube-system   kube-controller-manager-m03             1/1     Running   0          33h
-kube-system   kube-flannel-ds-amd64-7b86z             1/1     Running   0          35h
-kube-system   kube-flannel-ds-amd64-98qks             1/1     Running   0          33h
-kube-system   kube-flannel-ds-amd64-jkz27             1/1     Running   0          3h14m
-kube-system   kube-flannel-ds-amd64-ljcdp             1/1     Running   0          33h
-kube-system   kube-flannel-ds-amd64-s8vzs             1/1     Running   0          3h38m
-kube-system   kube-proxy-c4j4r                        1/1     Running   0          3h38m
-kube-system   kube-proxy-krnjq                        1/1     Running   0          37h
-kube-system   kube-proxy-n9s8c                        1/1     Running   0          3h14m
-kube-system   kube-proxy-scb25                        1/1     Running   0          33h
-kube-system   kube-proxy-xp4rj                        1/1     Running   0          33h
-kube-system   kube-scheduler-m01                      1/1     Running   4          37h
-kube-system   kube-scheduler-m02                      1/1     Running   0          33h
-kube-system   kube-scheduler-m03                      1/1     Running   0          33h
-kube-system   kubernetes-dashboard-847f8cb7b8-p8rjn   1/1     Running   0          62s
-kube-system   metrics-server-8658466f94-sr479         1/1     Running   0          17m
-```
-
-可以看到 kubernetes-dashboard 的 Pod 已经跑起来了。
-
-查看 dashboard 的 ingress 配置`kubectl  get ing --all-namespaces`：
-
-```
-[kube@m01 ~]$ kubectl  get ing --all-namespaces
-NAMESPACE     NAME                HOSTS                   ADDRESS   PORTS   AGE
-kube-system   dashboard-ingress   dashboard.k8s.hiko.im             80      36m
-```
-
-现在还不能访问，因为服务跑起来之后，只能是从 k8s 集群内部才能访问，需要将服务暴露到外部，具体操作见下文。
-
-## 9. 部署 Ingress，服务暴露
-
-### 9.1 必知知识点
+### 8.1 必知知识点
 
 参考：http://cloudnil.com/2018/12/14/Deploy-kubernetes(1.13.1)-HA-with-kubeadm//#12-服务暴露到公网
 
@@ -1780,7 +1571,7 @@ NodePort Service 顾名思义，实质上就是通过在集群的每个node上�
 
 Ingress 可以实现使用nginx等开源的反向代理负载均衡器实现对外暴露服务，可以理解Ingress就是用于配置域名转发的一个东西，在nginx中就类似upstream，它与ingress-controller结合使用，通过ingress-controller监控到pod及service的变化，动态地将ingress中的转发信息写到诸如nginx、apache、haproxy等组件中实现方向代理和负载均衡。
 
-### 9.2 部署 Nginx-ingress-controller
+### 8.2 部署 Nginx-ingress-controller
 
 Nginx-ingress-controller 是 kubernetes 官方提供的集成了 Ingress-controller 和 Nginx 的一个 docker 镜像。
 
@@ -2119,9 +1910,225 @@ kube-system     kubernetes-dashboard-847f8cb7b8-p8rjn       1/1     Running   0 
 kube-system     metrics-server-8658466f94-sr479             1/1     Running   0          39m
 ```
 
-部署完 Nginx-ingress-controller 后，解析域名  dashboard.k8s.hiko.im 到 m01 m02 m03 的 IP，就可以使用  dashboard.k8s.hiko.im 访问 dashboard。
 
-因为这里是从笔记本开虚拟机，所以要从宿主机（笔记本）访问，需要修改笔记本的本地 hosts， 添加一条记录：
+## 9. 部署 kubernetes-dashboard
+
+### 9.1 Dashboard 配置
+
+新建部署 dashboard 的资源配置文件：kubernetes-dashboard.yaml，内容如下：
+
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard-certs
+  namespace: kube-system
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+rules:
+  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+  # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create"]
+  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
+  verbs: ["get", "update", "delete"]
+  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["kubernetes-dashboard-settings"]
+  verbs: ["get", "update"]
+  # Allow Dashboard to get metrics from heapster.
+- apiGroups: [""]
+  resources: ["services"]
+  resourceNames: ["heapster"]
+  verbs: ["proxy"]
+- apiGroups: [""]
+  resources: ["services/proxy"]
+  resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-dashboard-minimal
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard
+    spec:
+      containers:
+      - name: kubernetes-dashboard
+        # 使用阿里云的镜像
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.0
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+        args:
+          - --auto-generate-certificates
+        volumeMounts:
+        - name: kubernetes-dashboard-certs
+          mountPath: /certs
+          # Create on-disk volume to store exec logs
+        - mountPath: /tmp
+          name: tmp-volume
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: kubernetes-dashboard-certs
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: kubernetes-dashboard
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    k8s-app: kubernetes-dashboard
+---
+# 配置 ingress 配置，待会部署完 ingress 之后，就可以通过以下配置的域名访问
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kube-system
+  annotations:
+    # 指定转发协议为 HTTPS，因为 ingress 默认转发协议是 HTTP，而 kubernetes-dashboard 默认是 HTTPS
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  rules:
+  # 指定访问 dashboard 的域名
+  - host: dashboard.k8s.hiko.im
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 443
+```
+
+执行部署 kubernetes-dashboard，命令 ` kubectl apply -f kubernetes-dashboard.yaml `，控制台打印如下：
+
+```
+[kube@m01 shells]$ kubectl apply -f kubernetes-dashboard.yaml 
+secret/kubernetes-dashboard-certs created
+serviceaccount/kubernetes-dashboard created
+role.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+deployment.apps/kubernetes-dashboard created
+service/kubernetes-dashboard created
+ingress.extensions/dashboard-ingress created
+```
+
+查看部署结果：
+
+```
+[kube@m01 ~]$ kubectl  get pods --all-namespaces
+NAMESPACE     NAME                                    READY   STATUS    RESTARTS   AGE
+kube-system   coredns-6c67f849c7-2qc68                1/1     Running   0          172m
+kube-system   coredns-6c67f849c7-dps8h                1/1     Running   0          172m
+kube-system   etcd-m01                                1/1     Running   8          37h
+kube-system   etcd-m02                                1/1     Running   12         33h
+kube-system   etcd-m03                                1/1     Running   0          33h
+kube-system   kube-apiserver-m01                      1/1     Running   9          37h
+kube-system   kube-apiserver-m02                      1/1     Running   0          33h
+kube-system   kube-apiserver-m03                      1/1     Running   0          33h
+kube-system   kube-controller-manager-m01             1/1     Running   4          37h
+kube-system   kube-controller-manager-m02             1/1     Running   0          33h
+kube-system   kube-controller-manager-m03             1/1     Running   0          33h
+kube-system   kube-flannel-ds-amd64-7b86z             1/1     Running   0          35h
+kube-system   kube-flannel-ds-amd64-98qks             1/1     Running   0          33h
+kube-system   kube-flannel-ds-amd64-jkz27             1/1     Running   0          3h14m
+kube-system   kube-flannel-ds-amd64-ljcdp             1/1     Running   0          33h
+kube-system   kube-flannel-ds-amd64-s8vzs             1/1     Running   0          3h38m
+kube-system   kube-proxy-c4j4r                        1/1     Running   0          3h38m
+kube-system   kube-proxy-krnjq                        1/1     Running   0          37h
+kube-system   kube-proxy-n9s8c                        1/1     Running   0          3h14m
+kube-system   kube-proxy-scb25                        1/1     Running   0          33h
+kube-system   kube-proxy-xp4rj                        1/1     Running   0          33h
+kube-system   kube-scheduler-m01                      1/1     Running   4          37h
+kube-system   kube-scheduler-m02                      1/1     Running   0          33h
+kube-system   kube-scheduler-m03                      1/1     Running   0          33h
+kube-system   kubernetes-dashboard-847f8cb7b8-p8rjn   1/1     Running   0          62s
+kube-system   metrics-server-8658466f94-sr479         1/1     Running   0          17m
+```
+
+可以看到 kubernetes-dashboard 的 Pod 已经跑起来了。
+
+查看 dashboard 的 ingress 配置`kubectl  get ing --all-namespaces`：
+
+```
+[kube@m01 ~]$ kubectl  get ing --all-namespaces
+NAMESPACE     NAME                HOSTS                   ADDRESS   PORTS   AGE
+kube-system   dashboard-ingress   dashboard.k8s.hiko.im             80      36m
+```
+
+我们要从笔记本访问到这个 dashboard 服务，需要解析域名 dashboard.k8s.hiko.im 到 m01 m02 m03 的 IP，就可以使用  dashboard.k8s.hiko.im 访问 dashboard。
+
+因为我们是从笔记本开虚拟机，所以要从宿主机（笔记本）访问，需要修改笔记本的本地 hosts， 添加一条记录：
 
 ```
 192.168.33.10 dashboard.k8s.hiko.im
@@ -2131,10 +2138,123 @@ kube-system     metrics-server-8658466f94-sr479             1/1     Running   0 
 
 ![image.png](./images/dashboard-login.png)
 
+到这里，服务都正常跑起来了。 
+
+但是，其实虽然这里能访问到登录页面，但是登录不进去 dashboard，这个问题我在 Github 上问了官方的开发，解决方式就是将 dashboard 的访问配置成 HTTPS（后面介绍，Github issue 地址：https://github.com/kubernetes/dashboard/issues/3464）。
+
+### 9.2 HTTPS 访问 Dashboard
+
+由于通过 HTTP 访问 dashboard 会无法登录进去 dashboard 的问题，所以这里我们将 dashboard 的服务配置成 HTTPS 进行访问。
+
+总共三步：
+
+**1. 签证书（或者使用权威的证书机构颁发的证书）**
+
+这里演示的是通过自签证书。
+
+command to sign certifications: 
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/k8s.hiko.im.key -out /tmp/k8s.hiko.im.crt -subj "/CN=*.hiko.im"
+```
+
+可以看到 `/tmp/` 目录下已经生成了crt 和 key 文件。
+
+```
+[kube@m01 ~]$ ll /tmp/| grep k8s
+-rw-rw-r--. 1 kube kube 1094 Dec 23 03:01 k8s.hiko.im.crt
+-rw-rw-r--. 1 kube kube 1704 Dec 23 03:01 k8s.hiko.im.key
+```
+
+**2. 创建 k8s Secret 资源**
+```
+kubectl -n kube-system create secret tls secret-ca-k8s-hiko-im --key /tmp/k8s.hiko.im.key --cert /tmp/k8s.hiko.im.crt
+```
+
+命令行打印如下：
+
+```
+[kube@m01 v1.13]$ kubectl -n kube-system create secret tls secret-ca-k8s-hiko-im --key /tmp/k8s.hiko.im.key --cert /tmp/k8s.hiko.im.crt
+secret/secret-ca-k8s-hiko-im created
+```
+
+**3. 配置 dashboard 的 ingress 为 HTTPS 访问服务**
+
+修改 `kubernetes-dashboard.yaml`，将其中的 Ingress 配置改为支持 HTTPS，具体配置如下：
+
+```
+...省略...
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kube-system
+  annotations:
+    # 如果通过 HTTP 访问，跳转到 HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # 指定转发协议为 HTTPS，因为 ingress 默认转发协议是 HTTP，而 kubernetes-dashboard 默认是 HTTPS
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  # 指定使用的 secret (刚刚创建的 secret)
+  tls:
+   - secretName: secret-ca-k8s-hiko-im
+  rules:
+  # 指定访问 dashboard 的域名
+  - host: dashboard.k8s.hiko.im
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 443
+```
+
+使用 `kubectl apply -f kubernetes-dashboard.yaml` 让配置生效。
+
+备注：完整的配置文件，可以参考：[kubernetes-dashboard-https.yaml](./tools/v1.13/kubernetes-dashboard-https.yaml)
 
 
+### 9.3 登录 Dashboard
 
-#### 9.2.1 404 问题
+登录 dashboard 需要做几个事情（不用担心，一个脚本搞定）:
+
+1. 新建 sa 的账号（也叫 serviceaccount）
+2. 集群角色绑定（将第 1 步新建的账号，绑定到 cluster-admin 这个角色上）
+3. 查看 Token 以及 Token 中的 secrect （secrect 中的 token 字段就是来登录的）
+
+执行以下脚本，获得登录的 Token:
+
+````
+## 创建脚本：create.dashboard.token.sh
+
+#!/bin/sh
+
+kubectl create sa dashboard-admin -n kube-system
+kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+ADMIN_SECRET=$(kubectl get secrets -n kube-system | grep dashboard-admin | awk '{print $1}')
+DASHBOARD_LOGIN_TOKEN=$(kubectl describe secret -n kube-system ${ADMIN_SECRET} | grep -E '^token' | awk '{print $2}')
+echo ${DASHBOARD_LOGIN_TOKEN}
+
+````
+
+
+复制 Token 去登录就行，Token 样例：
+
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tNWtnZHoiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYWQxNDAyMjQtMDYxNC0xMWU5LTkxMDgtNTI1NDAwODQ4MWQ1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.ry4xYI6TFF6J8xXsilu0qhuBeRjSNqVPq3OUzl62Ad3e2wM-biC5pPlKNmJLfJzurxnQrqp59VjmVeTA8BZiF7S6hqlrk8XE9_LFlItUvq3rp5wFuhJuVol8Yoi4UJFzUYQF6baH0O3R10aK33g2WmWLIg79OFAkeMMHrLthbL2pc_p_kG13_qDXlEuVgnIAFsKzxnrCCUfZ2GwGsHEFEqTGBCb0u6x3AZqfQgbN3DALkjjNTyTLP5Ok-LJ3Ug8SZZQBksvTeXCGXZDfk2LDDIvp_DyM7nTL3CTT5cQ3g4aBTFAae47NAkQkmjZg0mxvJH0xVnxrvXLND8FLLkzMxg
+
+```
+
+登录成功将看到：
+
+
+![kubernetes dashboard](./images/dashboard-index.png)
+
+
+### 9.4 404 问题
+
+如果你使用上面的配置，应该是不会遇到这个问题。
 
 上一步配置完成后，我测试访问，响应 404。
 
