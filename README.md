@@ -1,6 +1,13 @@
 kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 ---
 
+![kubernetes dashboard](./images/dashboard-index.png)
+
+在开始前，先看 kubernetes dashboard 的图，提起来一点信心（虽然 dashboard 组件在 k8s 正常运转中是可以不用的）。
+
+
+## 目录
+
 * [一、环境准备](#%E4%B8%80%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87)
     * [1\. 准备本地虚拟机](#1-%E5%87%86%E5%A4%87%E6%9C%AC%E5%9C%B0%E8%99%9A%E6%8B%9F%E6%9C%BA)
     * [2\. 虚拟机账号和 sudo 免密](#2-%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%B4%A6%E5%8F%B7%E5%92%8C-sudo-%E5%85%8D%E5%AF%86)
@@ -2122,7 +2129,7 @@ kube-system     metrics-server-8658466f94-sr479             1/1     Running   0 
 
 从浏览器访问：http://dashboard.k8s.hiko.im/
 
-![image.png](http://hikoqiu.oss-cn-hangzhou.aliyuncs.com/20181223/upload_ee07c09d3080b86f7dff654650bb2a86)
+![image.png](./images/dashboard-login.png)
 
 
 
