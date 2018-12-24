@@ -1,0 +1,40 @@
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 192.168.33.11
+  bindPort: 6443
+---
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: v1.13.1
+
+# 指定阿里云镜像仓库
+imageRepository: registry.aliyuncs.com/google_containers
+
+# apiServerCertSANs 填所有的 masterip、lbip、其它可能需要通过它访问 apiserver 的地址、域名或主机名等，
+# 如阿里fip，证书中会允许这些ip
+# 这里填一个自定义的域名
+apiServer:
+  certSANs:
+  - "api.k8s.hiko.im"
+controlPlaneEndpoint: "api.k8s.hiko.im:6443"
+
+## Etcd 配置
+etcd:
+  local:
+    extraArgs:
+      listen-client-urls: "https://127.0.0.1:2379,https://192.168.33.11:2379"
+      advertise-client-urls: "https://192.168.33.11:2379"
+      listen-peer-urls: "https://192.168.33.11:2380"
+      initial-advertise-peer-urls: "https://192.168.33.11:2380"
+      initial-cluster: "m01=https://192.168.33.10:2380,m02=https://192.168.33.11:2380"
+      initial-cluster-state: existing
+    serverCertSANs:
+      - m02
+      - 192.168.33.11
+    peerCertSANs:
+      - m02
+      - 192.168.33.11
+networking:
+  podSubnet: "10.244.0.0/16"
+
