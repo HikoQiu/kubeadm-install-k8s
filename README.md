@@ -2140,7 +2140,7 @@ kube-system   dashboard-ingress   dashboard.k8s.hiko.im             80      36m
 
 到这里，服务都正常跑起来了。 
 
-但是，其实虽然这里能访问到登录页面，但是登录不进去 dashboard，这个问题我在 Github 上问了官方的开发，解决方式就是将 dashboard 的访问配置成 HTTPS（后面介绍，Github issue 地址：https://github.com/kubernetes/dashboard/issues/3464）。
+但是，其实虽然这里能访问到登录页面，但是登录不进去 dashboard，这个问题我在 Github 上问了官方的开发，解决方式就是将 dashboard 的访问配置成 HTTPS（后面介绍，Github issue 地址：https://github.com/kubernetes/dashboard/issues/3464 ）。
 
 ### 9.2 HTTPS 访问 Dashboard
 
