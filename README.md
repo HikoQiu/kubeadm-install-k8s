@@ -1,4 +1,4 @@
-#kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
+kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 ---
 
 # 一、环境准备
