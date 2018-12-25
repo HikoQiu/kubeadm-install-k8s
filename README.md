@@ -6,6 +6,10 @@ kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 在开始前，先看 kubernetes dashboard 的图，提起来一点信心（虽然 dashboard 组件在 k8s 正常运转中是可以不用的）。
 
 
+**计划搭建的集群架构图如下：**
+
+![k8s-ha](./images/k8s-ha.jpg)
+
 ## 目录
 
 * [一、环境准备](#%E4%B8%80%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87)
@@ -215,6 +219,9 @@ chmod +x ./init.sys.config.sh
 ```
 
 # 二、安装架构概览
+
+
+![k8s-ha](./images/k8s-ha.jpg)
 
 
 # 三、安装步骤
@@ -2212,7 +2219,7 @@ spec:
 
 使用 `kubectl apply -f kubernetes-dashboard.yaml` 让配置生效。
 
-备注：完整的配置文件，可以参考：[kubernetes-dashboard-https.yaml](./tools/v1.13/kubernetes-dashboard-https.yaml)
+备注：完整的配置文件，可以参考：[kubernetes-dashboard-https.yaml](https://github.com/HikoQiu/kubeadm-install-k8s/blob/master/tools/v1.13/kubernetes-dashboard-https.yaml)
 
 
 ### 9.3 登录 Dashboard
