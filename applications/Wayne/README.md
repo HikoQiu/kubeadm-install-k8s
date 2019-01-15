@@ -11,7 +11,7 @@ Wayne： 360 开源 kubernetes 多集群管理平台
 
 安装 Wayne 跟安装普通的应用没太大的区别，通过 `kubectl apply -f *.yaml` 进行相关依赖和程序的安装。
 
-Wayne 提供了知道文档，具体参考：[wiki](https://github.com/Qihoo360/wayne/wiki)
+Wayne 提供了指导文档，具体参考：[wiki](https://github.com/Qihoo360/wayne/wiki)
 
 
 Wayne 的仓库中提供了部署所需的 yaml 配置文件，见：[hack/kubernetes](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes)
