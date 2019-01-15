@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: wayne-ingress
+  namespace: default
+spec:
+  rules:
+  - host: wayne.k8s.hiko.im
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: infra-wayne
+          servicePort: 8080 

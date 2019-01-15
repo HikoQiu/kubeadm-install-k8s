@@ -1,12 +1,26 @@
 kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 ---
 
+
+### [本仓库完整教程列表]
+
+
+* 一、[Kubeadmin 安装高可用 Kubernetes 集群](https://github.com/HikoQiu/kubeadm-install-k8s)（当前文章）
+* 二、基于 Kubernetes 集群部署推荐应用
+	* [1. Wayne： 360 开源 kubernetes 多集群管理平台](/applications/Wayne/README.md)
+
+
+---
+
+# kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
+
 ![kubernetes dashboard](./images/dashboard-index.png)
 
-在开始前，先看 kubernetes dashboard 的图，提起来一点信心（虽然 dashboard 组件在 k8s 正常运转中是可以不用的）。
+在开始前，先看 kubernetes dashboard 的图，提起来一点信心（备注：dashboard 组件在 k8s 正常运转中是可以不用的）。
 
+---
 
-**计划搭建的集群架构图如下：**
+**本教程计划搭建的集群架构图如下：**
 
 ![k8s-ha](./images/k8s-ha.jpg)
 
