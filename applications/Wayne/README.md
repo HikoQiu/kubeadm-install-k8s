@@ -16,10 +16,9 @@ Wayne 提供了指导文档，具体参考：[wiki](https://github.com/Qihoo360/
 
 Wayne 的仓库中提供了部署所需的 yaml 配置文件，见：[hack/kubernetes](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes)
 
-其中有两个目录：[dependency](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes/dependency)、[wayne](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes/wayne)
+其中有两个目录：[dependency](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes/dependency)、[wayne](https://github.com/Qihoo360/wayne/tree/master/hack/kubernetes/wayne) 分别下载并通过 `kubectl apply -f .` 进行安装。
 
-
-分别下载并通过 `kubectl apply -f .` ，先安装 denpendency 中的 MySQL 和 RabbitMQ，再安装 wayne、wayne-webhook 和 wayne-woker。
+先安装 denpendency 中的 MySQL 和 RabbitMQ，再安装 wayne、wayne-webhook 和 wayne-woker。
 
 因为官方提供的配置比较高，我自己调整了配置进行安装，具体配置见：[wayne/v1.3.1](./v1.3.1)
 
