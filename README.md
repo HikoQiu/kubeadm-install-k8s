@@ -9,7 +9,9 @@ kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 * 二、基于 Kubernetes 集群部署推荐应用
 	* [1. Wayne： 360 开源 kubernetes 多集群管理平台](/applications/Wayne/README.md)
 	* [2. Weave Scope：实时监控 kubernetes 工具](/applications/Weave%20Scope/README.md)
-
+	* [3. Helm：Kubernetes 包管理工具](/applications/helm/README.md)
+* 三、错误排查
+	* [1. Pod CrashLoopBackOff/Error](/errors/1-pod_status_error.md)
 
 ---
 
