@@ -124,6 +124,34 @@ stable/gcloud-sqlproxy          	0.6.1        	1.11       	DEPRECATED Google Clo
 stable/mariadb                  	5.4.3        	10.1.37    	Fast, reliable, scalable, and easy to use open-source rel...
 ```
 
+### 3.1 修改 stable charts 源
+
+由于网络原因，这里讲默认的 stable charts 修改为阿里云提供的 charts，如下：
+
+```
+[kube@m01 volumns]$ helm repo list
+NAME    URL                                             
+stable  https://kubernetes-charts.storage.googleapis.com
+local   http://127.0.0.1:8879/charts                    
+[kube@m01 volumns]$ helm repo list
+NAME    URL                                             
+stable  https://kubernetes-charts.storage.googleapis.com
+local   http://127.0.0.1:8879/charts                    
+[kube@m01 volumns]$ helm repo remove stable
+"stable" has been removed from your repositories
+[kube@m01 volumns]$ helm repo add stable https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+"stable" has been added to your repositories
+[kube@m01 volumns]$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Skip local chart repository
+...Successfully got an update from the "stable" chart repository
+Update Complete. ⎈ Happy Helming!⎈ 
+[kube@m01 volumns]$ helm repo list
+NAME    URL                                                   
+local   http://127.0.0.1:8879/charts                          
+stable  https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+```
+
 ## 4. 问题排查
 
 ### 4.1 *** is forbidden
