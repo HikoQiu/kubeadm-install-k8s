@@ -175,6 +175,9 @@ kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"templat
 ## 5. 常用命令
 
 ```
+# 卸载helm服务端
+helm reset 或 helm reset --force
+
 # 查看仓库中所有可用 Helm charts
 helm search 
 

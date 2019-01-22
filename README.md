@@ -10,6 +10,7 @@ kubeadm 1.13 安装高可用 kubernetes v1.13.1 集群
 	* [1. Wayne： 360 开源 kubernetes 多集群管理平台](/applications/Wayne/README.md)
 	* [2. Weave Scope：实时监控 kubernetes 工具](/applications/Weave%20Scope/README.md)
 	* [3. Helm：Kubernetes 包管理工具](/applications/helm/README.md)
+		* [3.1 Monocular： Helm charts 仓库管理  WEB UI 工具](/applications/Monocular/README.md)
 	* [4. NFS：Network File Storage](/applications/NFS/README.md)
 * 三、错误排查
 	* [1. Pod CrashLoopBackOff/Error](/errors/1-pod_status_error.md)
@@ -285,7 +286,7 @@ chmod +x install.docker.sh
 
 ## 2. 安装 kubernetes yum 源和 kubelet、kubeadm、kubectl
 
-所有机器上配置 kubernetes.repo yum 源，m01、m02、m03 上安装 kubelet、kubeadm、kubectl，n01、n02 上安装 kubectl，详细安装脚本如下：
+所有机器上配置 kubernetes.repo yum 源，m01、m02、m03、n01、n02 上安装 kubelet、kubeadm、kubectl， 安装完之后，启动 m01 的 kubelet，详细安装脚本如下：
 
 ````
 ## 创建脚本： install.k8s.repo.sh
@@ -293,9 +294,6 @@ chmod +x install.docker.sh
 #!/bin/sh
 
 vhost="m01 m02 m03 n01 n02"
-
-master="m01 m02 m03"
-nodes="n01 n02"
 
 ## 1. 阿里云 kubernetes 仓库
 cat <<EOF > kubernetes.repo

@@ -1,0 +1,12 @@
+api:
+  config:
+    repos:
+      - name: stable
+        url: https://aliacs-app-catalog.oss-cn-hangzhou.aliyuncs.com/charts
+        source: https://github.com/kubernetes/charts/tree/master/stable
+      - name: incubator
+        url: https://aliacs-app-catalog.oss-cn-hangzhou.aliyuncs.com/charts-incubator
+        source: https://github.com/kubernetes/charts/tree/master/incubator
+      - name: monocular
+        url: https://kubernetes-helm.github.io/monocular
+        source: https://github.com/kubernetes-helm/monocular/tree/master/charts
